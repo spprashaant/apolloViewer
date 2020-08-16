@@ -28,3 +28,71 @@ jobs:
       - name: Resolve project dependencies with NPM
         shell: bash
         run: npm ci
+- name: Build project
+        shell: bash
+        run: gulp build
+      - name: Bundle project
+        shell: bash
+        run: gulp bundle --ship
+      - name: Package project
+        shell: bash
+        run: gulp package-solution --ship
+      - id: getSppkgFilename
+        name: Get generated *.sppkg filename
+        shell: bash
+        run: |
+          CMD_GET_SPPKG_NAME=$(find . -name '*.sppkg' -exec basename {} \;)
+          echo "ℹ️ SharePoint Package created: ${CMD_GET_SPPKG_NAME}"
+          echo "::set-env name=SPPKG_FILENAME::${CMD_GET_SPPKG_NAME}"
+          echo "::set-output name=sppkgfilename::${CMD_GET_SPPKG_NAME}"
+      - name: Upload SharePoint package (*.sppkg)
+        uses: actions/upload-artifact@v1
+        with:
+          name: SHAREPOINT_PACKAGE
+          path: sharepoint/solution/${{env.SPPKG_FILENAME}}
+  test:
+    name: Execute Tests (Node.js v${{ matrix.node }})
+    if: "!contains(github.event.head_commit.message,'[skip-ci]')"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [8, 10]
+      fail-fast: true
+    steps:
+      - name: Checkout repo action
+        uses: actions/checkout@v2
+      - name: Setup Node.js v${{ matrix.node }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Cache Node.js packages
+        uses: actions/cache@v1
+        env:
+          cache-name: cache-node-packages
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+      - name: Resolve project dependencies with NPM
+        shell: bash
+        run: npm ci
+      - name: Build project
+        shell: bash
+        run: gulp build
+      - name: Run tests
+        shell: bash
+        run: npm test
+      - name: Save JUnit test results
+        uses: actions/upload-artifact@v1
+        with:
+          name: TEST_JUNIT_RESULTS
+          path: temp/test/junit/junit.xml
+      - name: Save code coverage results (data file)
+        uses: actions/upload-artifact@v1
+        with:
+          name: COVERAGE_REPORT_DATA
+          path: temp/test/cobertura-coverage.xml
+      - name: Save code coverage results (report)
+        uses: actions/upload-artifact@v1
+        with:
+          name: COVERAGE_REPORT
+          path: temp/test/lcov-report
