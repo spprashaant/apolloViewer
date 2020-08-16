@@ -96,3 +96,72 @@ jobs:
         with:
           name: COVERAGE_REPORT
           path: temp/test/lcov-report
+  deploy-dev:
+    name: Deploy to dev site
+    if: "!contains(github.event.head_commit.message,'[skip-ci]') && !contains(github.event.head_commit.message,'[skip-cd]')"
+    runs-on: ubuntu-latest
+    needs: [build, test]
+    steps:
+      - name: Download SharePoint package (*.sppkg)
+        uses: actions/download-artifact@v1
+        with:
+          name: SHAREPOINT_PACKAGE
+      - name: Sign into Office 365
+        uses: pnp/action-cli-login@v1.0.0
+        with:
+          ADMIN_USERNAME: ${{ secrets.ADMIN_USERNAME }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+      - id: o365clideploy
+        name: Deploy SharePoint package (to site collection App Catalog)
+        uses: pnp/action-cli-deploy@v1.0.0
+        with:
+          APP_FILE_PATH: SHAREPOINT_PACKAGE/${{ needs.build.outputs.sppkgfilename }}
+          SCOPE: sitecollection
+          SITE_COLLECTION_URL: ${{ secrets.TARGET_DEV_SITE }}
+          OVERWRITE: true
+  deploy-staging:
+    name: Deploy to staging site
+    if: "github.ref == 'refs/heads/staging' && !contains(github.event.head_commit.message,'[skip-ci]') && !contains(github.event.head_commit.message,'[skip-cd]')"
+    runs-on: ubuntu-latest
+    needs: [build, test]
+    steps:
+      - name: Download SharePoint package (*.sppkg)
+        uses: actions/download-artifact@v1
+        with:
+          name: SHAREPOINT_PACKAGE
+      - name: Sign into Office 365
+        uses: pnp/action-cli-login@v1.0.0
+        with:
+          ADMIN_USERNAME: ${{ secrets.ADMIN_USERNAME }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+      - id: o365clideploy
+        name: Deploy SharePoint package (to site collection App Catalog)
+        uses: pnp/action-cli-deploy@v1.0.0
+        with:
+          APP_FILE_PATH: SHAREPOINT_PACKAGE/${{ needs.build.outputs.sppkgfilename }}
+          SCOPE: sitecollection
+          SITE_COLLECTION_URL: ${{ secrets.TARGET_STAGING_SITE }}
+          OVERWRITE: true
+  deploy-production:
+    name: Deploy to production site
+    if: "github.ref == 'refs/heads/master' && !contains(github.event.head_commit.message,'[skip-ci]') && !contains(github.event.head_commit.message,'[skip-cd]')"
+    runs-on: ubuntu-latest
+    needs: [build, test]
+    steps:
+      - name: Download SharePoint package (*.sppkg)
+        uses: actions/download-artifact@v1
+        with:
+          name: SHAREPOINT_PACKAGE
+      - name: Sign into Office 365
+        uses: pnp/action-cli-login@v1.0.0
+        with:
+          ADMIN_USERNAME: ${{ secrets.ADMIN_USERNAME }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+      - id: o365clideploy
+        name: Deploy SharePoint package (to site collection App Catalog)
+        uses: pnp/action-cli-deploy@v1.0.0
+        with:
+          APP_FILE_PATH: SHAREPOINT_PACKAGE/${{ needs.build.outputs.sppkgfilename }}
+          SCOPE: sitecollection
+          SITE_COLLECTION_URL: ${{ secrets.TARGET_PROD_SITE }}
+          OVERWRITE: true
