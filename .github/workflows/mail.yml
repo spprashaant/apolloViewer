@@ -28,7 +28,7 @@ jobs:
       - name: Resolve project dependencies with NPM
         shell: bash
         run: npm ci
-- name: Build project
+      - name: Build project
         shell: bash
         run: gulp build
       - name: Bundle project
