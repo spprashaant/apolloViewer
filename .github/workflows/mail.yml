@@ -1,0 +1,26 @@
+name: Build, test, & deploy
+on: [push]
+jobs:
+  build:
+    name: Project build & Package
+    if: "!contains(github.event.head_commit.message, '[skip-ci]'"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo action
+        uses: actions/checkout@v2
+      - name: Setup Node v10.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: 10.x
+      - name: Cache Node.js packages
+        uses: actions/cache@v1
+        env:
+          cache-name: cache-node-packages
+        with:
+           # use `~/.npm` for macOS/Linux agents
+           #    & `%AppData%/npm-cache` for Windows agents
+          path: ~/.npm
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+      - name: Resolve project dependencies with NPM
+        shell: bash
+        run: npm ci
